@@ -1,0 +1,5 @@
+*.mp3
+*.wav
+whisper-finetuned-shortened-medium
+__pycache__
+*.proto
