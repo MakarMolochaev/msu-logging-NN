@@ -4,4 +4,4 @@ whisper-finetuned-shortened-medium/
 whisper-finetuned-shortened-medium/*
 __pycache__
 *.proto
-nn.py
+/nn.py
