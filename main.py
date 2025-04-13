@@ -1,6 +1,7 @@
 import json
 import shutil
 import subprocess
+from urllib.parse import unquote, urlparse
 import pika
 import grpc
 from concurrent import futures
@@ -32,15 +33,16 @@ def Transcribe_Audio(fileLink, task_id):
     print(f"Downloading audio {fileLink} for {task_id}")
     downloadedFile = requests.get(fileLink)
 
-    filename = f"audio{task_id}.wav"
+    parsed = urlparse(fileLink)
+    basefilename = unquote(parsed.path.split("/")[-1])
 
-    with open(filename, "wb") as f:
+    with open(basefilename, "wb") as f:
         f.write(downloadedFile.content)
 
-    print(f"Converting audio {filename} for {task_id}")
+    print(f"Converting audio {basefilename} for {task_id}")
 
-    convert_to_proper_wav(filename, f"fixed_{filename}")
-    filename = f"fixed_{filename}"
+    convert_to_proper_wav(basefilename, f"fixed_{os.path.basename(basefilename).split('.')[0]}.wav")
+    filename = f"fixed_{os.path.basename(basefilename).split('.')[0]}.wav"
 
 
     print(f"Separating audio {filename} for {task_id}")
@@ -97,8 +99,8 @@ def Transcribe_Audio(fileLink, task_id):
         print(f"processed chunk {i} for task {task_id}")
 
     shutil.rmtree(f"chunks{task_id}")
-    os.remove(f"audio{task_id}.wav")
-    os.remove(f"fixed_audio{task_id}.wav")
+    os.remove(basefilename)
+    os.remove(filename)
 
     print(f"Successfully transcribed audio for {task_id}")
     return result
