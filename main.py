@@ -1,11 +1,9 @@
 import json
-import shutil
 import subprocess
 from urllib.parse import unquote, urlparse
 import pika
 import grpc
 from concurrent import futures
-
 import requests
 import msu_logging_pb2
 import msu_logging_pb2_grpc
@@ -15,6 +13,17 @@ import shutil
 from transformers import pipeline
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
+from moviepy import *
+
+def ConvertToWAV(input_path, output_path):
+    filename, file_extension = os.path.splitext(input_path)
+
+    if file_extension.lower() == 'mp4':
+        clip = VideoFileClip(input_path)
+        audio = clip.audio
+        audio.write_audiofile(output_path)
+    else:
+        convert_to_proper_wav(input_path,output_path)
 
 def convert_to_proper_wav(input_path, output_path):
     try:
@@ -41,7 +50,7 @@ def Transcribe_Audio(fileLink, task_id):
 
     print(f"Converting audio {basefilename} for {task_id}")
 
-    convert_to_proper_wav(basefilename, f"fixed_{os.path.basename(basefilename).split('.')[0]}.wav")
+    ConvertToWAV(basefilename, f"fixed_{os.path.basename(basefilename).split('.')[0]}.wav")
     filename = f"fixed_{os.path.basename(basefilename).split('.')[0]}.wav"
 
 
@@ -106,15 +115,24 @@ def Transcribe_Audio(fileLink, task_id):
     return result
 
 
+backend_service_url = 'backend-service'
+rabbit_url = 'rabbitmq'
+
 class RabbitMQConsumer:
     def __init__(self):
         self.connection = pika.BlockingConnection(
-            pika.URLParameters('amqp://admin:admin@localhost:5672/')
+            pika.URLParameters(f'amqp://admin:admin@{rabbit_url}:5672/')
         )
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue='transcribe_queue', durable=True)
         
-        self.grpc_channel = grpc.insecure_channel('localhost:50051')
+        self.grpc_channel = grpc.insecure_channel(
+        f'{backend_service_url}:50051',
+        options=[
+            ('grpc.connect_timeout_ms', 5000),  # 5 секунд на подключение
+            ('grpc.max_receive_message_length', 100 * 1024 * 1024),  # 100MB
+        ]
+        )
         self.grpc_stub = msu_logging_pb2_grpc.TranscribeStub(self.grpc_channel)
 
     def callback(self, ch, method, properties, body):

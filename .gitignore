@@ -5,3 +5,4 @@ whisper-finetuned-shortened-medium/*
 __pycache__
 *.proto
 /nn.py
+.vscode
