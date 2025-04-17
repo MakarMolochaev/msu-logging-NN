@@ -14,6 +14,17 @@ from transformers import pipeline
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 from moviepy import *
+import argparse
+
+# Создаем парсер аргументов
+parser = argparse.ArgumentParser(description="Пример программы с флагом")
+
+parser.add_argument("--backend_url", type=str, default='backend-service')
+parser.add_argument("--rabbitmq_url", type=str, default='rabbitmq')
+
+# Парсим аргументы
+args = parser.parse_args()
+
 
 def ConvertToWAV(input_path, output_path):
     filename, file_extension = os.path.splitext(input_path)
@@ -115,8 +126,8 @@ def Transcribe_Audio(fileLink, task_id):
     return result
 
 
-backend_service_url = 'backend-service'
-rabbit_url = 'rabbitmq'
+backend_service_url = args.backend_url
+rabbit_url = args.rabbitmq_url
 
 class RabbitMQConsumer:
     def __init__(self):
